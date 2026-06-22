@@ -1,0 +1,39 @@
+{
+	"schemaVersion": 1,
+	"id": "rbd",
+	"version": "${version}",
+	"name": "Return By Death",
+	"description": "This is an example description! Tell everyone what your mod is about!",
+	"authors": [
+		"CodeCraft07"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/rbd/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"me.codecraft07.rbd.ReturnByDeath"
+		],
+		"client": [
+			"me.codecraft07.rbd.client.ReturnByDeathClient"
+		],
+		"fabric-datagen": [
+			"me.codecraft07.rbd.data.ReturnByDeathDataGenerator"
+		]
+	},
+	"mixins": [
+		"rbd.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~26.2",
+		"java": ">=25",
+		"fabric-api": "*",
+		"owo": "0.13.0+26.1"
+
+	}
+}
