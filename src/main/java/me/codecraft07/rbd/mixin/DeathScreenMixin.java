@@ -24,7 +24,7 @@ public class DeathScreenMixin {
         if (!Minecraft.getInstance().hasSingleplayerServer()) return;
         var server = Minecraft.getInstance().getSingleplayerServer();
         if (server == null) return;
-        ReturnByDeath.loadSave(server);
+        ReturnByDeath.loadSave_server(server);
         ci.cancel();
     }
 

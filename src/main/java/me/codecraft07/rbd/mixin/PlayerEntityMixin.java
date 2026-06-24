@@ -67,7 +67,6 @@ public abstract class PlayerEntityMixin extends Player implements PacketContextP
 		if (!Minecraft.getInstance().hasSingleplayerServer()) return;
 		var server = Minecraft.getInstance().getSingleplayerServer();
 		if (server == null) return;
-		// 2. Generate a random boolean (true or false)
 		ReturnByDeath.loadSave_server(server);
 		ci.cancel();
 	}

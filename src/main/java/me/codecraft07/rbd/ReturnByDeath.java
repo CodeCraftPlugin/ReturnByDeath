@@ -2,9 +2,9 @@ package me.codecraft07.rbd;
 
 import net.fabricmc.api.ModInitializer;
 
-import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.core.Registry;
@@ -13,7 +13,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.stats.Stat;
 import net.minecraft.stats.StatFormatter;
 import net.minecraft.world.level.storage.LevelResource;
@@ -25,6 +28,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
+import java.util.Random;
 import java.util.Set;
 
 import static net.minecraft.stats.Stats.CUSTOM;
@@ -112,30 +116,16 @@ public class  ReturnByDeath implements ModInitializer {
 			LOGGER.error("Error creating save: ", e);
 		}
 	}
-
-	public static void loadSave(MinecraftServer server) {
-		load_save = false;
-		var levelPath = server.getWorldPath(LevelResource.ROOT);
-		var client = Minecraft.getInstance();
-		client.disconnectFromWorld(Component.literal("Loading save..."));
-
-		var savePath = levelPath.resolve(SAVE_DIR);
-		tryLoading(server,levelPath, savePath);
-
-		client.createWorldOpenFlows().openWorld(levelPath.normalize().getFileName().toString(), () -> client.gui.setScreen(new TitleScreen()));
-	}
-
+	public static boolean pendingSound = false;
 	public static boolean pendingRewind = false;
 	public static String targetWorldName = "";
-	public static SoundEvent pendingWakeUpSound = null;
 	public static void loadSave_server(MinecraftServer server) {
 		// 1. Flag that a rewind needs to happen once the server dies
 		pendingRewind = true;
+		pendingSound =  true;
 		targetWorldName = server.getWorldPath(LevelResource.ROOT).normalize().getFileName().toString();
 
 		var client = Minecraft.getInstance();
-		boolean randomBoolean = Math.random() < 0.5; // Or however you get this
-		ReturnByDeath.pendingWakeUpSound = randomBoolean ? ReturnByDeath.DEATH_SOUND_1 : ReturnByDeath.DEATH_SOUND_2;
 
 		// 2. Schedule the disconnect on the Client/Render thread safely
 		client.execute(() -> {
@@ -146,6 +136,7 @@ public class  ReturnByDeath implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+
 		// This code runs as soon as Minecraft is in a mod-load-ready state.
 		// However, some things (like resources) may still be uninitialized.
 		// Proceed with mild caution.
@@ -153,6 +144,8 @@ public class  ReturnByDeath implements ModInitializer {
 		returnTime = makeCustomStat("return_time", StatFormatter.TIME);
 		playTimeStat= CUSTOM.get(returnTime);
 		LOGGER.info("Hello Fabric world!");
+
+//      Server Start Event:
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			var client = Minecraft.getInstance();
 			if (!client.hasSingleplayerServer()) return;
@@ -163,6 +156,7 @@ public class  ReturnByDeath implements ModInitializer {
 
 		//Using event rather than the method itself to load the server, it's better since one It can be used on both server and client threads
 		// second, it makes sures that the server is actually stopped before attempting to save game
+		//Server Stopped Event
 		ServerLifecycleEvents.SERVER_STOPPED.register((server) -> {
 			// this is done to prevent save and quite to cause return by death.
 			if (ReturnByDeath.pendingRewind) {
@@ -185,32 +179,24 @@ public class  ReturnByDeath implements ModInitializer {
 			}
 		});
 
-		//plays the fucking sound , why does it have to be so complicated to add a wait.
-		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
-
-			// 1. Check if we have a sound waiting to be played
-			if (ReturnByDeath.pendingWakeUpSound != null) {
-
-				// 2. We need to run this on the client thread just to be safe
-				client.execute(() -> {
-					if (client.player != null) {
-						// Play the sound at the player's exact location in the world!
-						client.player.playSound(ReturnByDeath.pendingWakeUpSound, 1.0F, 1.0F);
-					}
-				});
-
-				// 3. Clear the variable so it doesn't play again next time they join normally
-				ReturnByDeath.pendingWakeUpSound = null;
+		//plays the fucking sound , why does it have to be so obfuscated
+		//Player Join Event
+		ServerPlayerEvents.JOIN.register((player) -> {
+			boolean whichSound = new Random().nextBoolean();
+			if (pendingSound){
+				if (whichSound){
+					player.level().playSound(null,player,ReturnByDeath.DEATH_SOUND_2,SoundSource.NEUTRAL,1.0F,1.0F);
+				}
+				else {
+					player.level().playSound(null,player.getOnPos(),DEATH_SOUND_1,SoundSource.NEUTRAL,1.0F,1.0F);
+				}
 			}
 		});
 	}
 
-
-
 	private static void tryLoading(MinecraftServer server,Path levelPath, Path savePath) {
 
-		// pretty self-explanatory,
-		// check if the
+		// pretty self-explanatory
 		if (!Files.exists(server.getWorldPath(LevelResource.ROOT).resolve(savePath))) { new RuntimeException("The save path does not exits, will not attempt to load save");}
 
 		try {
