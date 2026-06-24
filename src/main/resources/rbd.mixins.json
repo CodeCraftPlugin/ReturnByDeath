@@ -3,7 +3,8 @@
 	"package": "me.codecraft07.rbd.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"mixins": [
-		"PlayerEntityMixin"
+		"PlayerEntityMixin",
+		"PlayerAdvancementMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

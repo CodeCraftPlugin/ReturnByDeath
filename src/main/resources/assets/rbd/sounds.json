@@ -1,0 +1,14 @@
+{
+  "return_death_death_1": {
+    "sounds": [
+      "rbd:return_death_death_1"
+    ],
+    "subtitle": "subtitles.rbd.return_death_death_1"
+  },
+  "return_death_death_2":{
+    "sounds": [
+      "rbd:return_death_death_2"
+    ],
+    "subtitle": "subtitles.rbd.return_death_death_2"
+  }
+}

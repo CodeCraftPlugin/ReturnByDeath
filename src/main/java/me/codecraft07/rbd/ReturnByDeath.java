@@ -2,7 +2,9 @@ package me.codecraft07.rbd;
 
 import net.fabricmc.api.ModInitializer;
 
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.core.Registry;
@@ -11,6 +13,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.stats.Stat;
 import net.minecraft.stats.StatFormatter;
 import net.minecraft.world.level.storage.LevelResource;
@@ -29,6 +32,12 @@ import static net.minecraft.stats.Stats.CUSTOM;
 public class  ReturnByDeath implements ModInitializer {
 	public static final String MOD_ID = "rbd";
 	public static Stat<?> playTimeStat;
+	public static final Identifier DEATH_SOUND_ID_1 = Identifier.fromNamespaceAndPath(MOD_ID,"return_death_death_1");
+	public static final Identifier DEATH_SOUND_ID_2 = Identifier.fromNamespaceAndPath(MOD_ID,"return_death_death_2");
+	public static final SoundEvent DEATH_SOUND_1 = register(DEATH_SOUND_ID_1,DEATH_SOUND_ID_1);
+	public static final SoundEvent DEATH_SOUND_2 = register(DEATH_SOUND_ID_2,DEATH_SOUND_ID_2);
+
+	public static boolean load_save = false;
 
 	// This logger is used to write text to the console and the log file.
 	// It is considered best practice to use your mod id as the logger's name.
@@ -105,28 +114,34 @@ public class  ReturnByDeath implements ModInitializer {
 	}
 
 	public static void loadSave(MinecraftServer server) {
+		load_save = false;
 		var levelPath = server.getWorldPath(LevelResource.ROOT);
 		var client = Minecraft.getInstance();
 		client.disconnectFromWorld(Component.literal("Loading save..."));
 
 		var savePath = levelPath.resolve(SAVE_DIR);
-		try {
-			try (var stream = Files.newDirectoryStream(levelPath)) {
-				for (var path : stream) {
-					if (IGNORED_PATHS.contains(path.getFileName().toString())) continue;
-					deleteRecursive(path);
-				}
-			}
-			try (var stream = Files.newDirectoryStream(savePath)) {
-				for (var path : stream) {
-					copyRecursive(path, levelPath);
-				}
-			}
-		} catch (IOException e) {
-			LOGGER.error("Error loading save: ", e);
-		}
+		tryLoading(server,levelPath, savePath);
 
 		client.createWorldOpenFlows().openWorld(levelPath.normalize().getFileName().toString(), () -> client.gui.setScreen(new TitleScreen()));
+	}
+
+	public static boolean pendingRewind = false;
+	public static String targetWorldName = "";
+	public static SoundEvent pendingWakeUpSound = null;
+	public static void loadSave_server(MinecraftServer server) {
+		// 1. Flag that a rewind needs to happen once the server dies
+		pendingRewind = true;
+		targetWorldName = server.getWorldPath(LevelResource.ROOT).normalize().getFileName().toString();
+
+		var client = Minecraft.getInstance();
+		boolean randomBoolean = Math.random() < 0.5; // Or however you get this
+		ReturnByDeath.pendingWakeUpSound = randomBoolean ? ReturnByDeath.DEATH_SOUND_1 : ReturnByDeath.DEATH_SOUND_2;
+
+		// 2. Schedule the disconnect on the Client/Render thread safely
+		client.execute(() -> {
+			// This will safely kick the player and initiate the Integrated Server shutdown
+			client.disconnectFromWorld(Component.literal("Loading save..."));
+		});
 	}
 
 	@Override
@@ -145,6 +160,74 @@ public class  ReturnByDeath implements ModInitializer {
 
 			save(server);
 		});
+
+		//Using event rather than the method itself to load the server, it's better since one It can be used on both server and client threads
+		// second, it makes sures that the server is actually stopped before attempting to save game
+		ServerLifecycleEvents.SERVER_STOPPED.register((server) -> {
+			// this is done to prevent save and quite to cause return by death.
+			if (ReturnByDeath.pendingRewind) {
+				ReturnByDeath.pendingRewind = false;
+
+				var levelPath = server.getWorldPath(LevelResource.ROOT);
+				var savePath = levelPath.resolve(SAVE_DIR);
+
+				// this is the real logics , created by ThePotatoArchivist
+				tryLoading(server,levelPath, savePath);
+
+
+				var client = Minecraft.getInstance();
+				client.execute(() -> {
+					client.createWorldOpenFlows().openWorld(
+							ReturnByDeath.targetWorldName,
+							() -> client.gui.setScreen(new TitleScreen())
+					);
+				});
+			}
+		});
+
+		//plays the fucking sound , why does it have to be so complicated to add a wait.
+		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+
+			// 1. Check if we have a sound waiting to be played
+			if (ReturnByDeath.pendingWakeUpSound != null) {
+
+				// 2. We need to run this on the client thread just to be safe
+				client.execute(() -> {
+					if (client.player != null) {
+						// Play the sound at the player's exact location in the world!
+						client.player.playSound(ReturnByDeath.pendingWakeUpSound, 1.0F, 1.0F);
+					}
+				});
+
+				// 3. Clear the variable so it doesn't play again next time they join normally
+				ReturnByDeath.pendingWakeUpSound = null;
+			}
+		});
+	}
+
+
+
+	private static void tryLoading(MinecraftServer server,Path levelPath, Path savePath) {
+
+		// pretty self-explanatory,
+		// check if the
+		if (!Files.exists(server.getWorldPath(LevelResource.ROOT).resolve(savePath))) { new RuntimeException("The save path does not exits, will not attempt to load save");}
+
+		try {
+			try (var stream = Files.newDirectoryStream(levelPath)) {
+				for (var path : stream) {
+					if (IGNORED_PATHS.contains(path.getFileName().toString())) continue;
+					deleteRecursive(path);
+				}
+			}
+			try (var stream = Files.newDirectoryStream(savePath)) {
+				for (var path : stream) {
+					copyRecursive(path, levelPath);
+				}
+			}
+		} catch (IOException e) {
+			LOGGER.error("Error loading save: ", e);
+		}
 	}
 
 	public static Identifier makeCustomStat(final String id, final StatFormatter formatter) {
@@ -156,5 +239,9 @@ public class  ReturnByDeath implements ModInitializer {
 
 	public static Identifier id(String path) {
 		return Identifier.fromNamespaceAndPath(MOD_ID, path);
+	}
+
+	private static SoundEvent register(final Identifier id, final Identifier soundId) {
+		return Registry.register(BuiltInRegistries.SOUND_EVENT, id, SoundEvent.createVariableRangeEvent(soundId));
 	}
 }
