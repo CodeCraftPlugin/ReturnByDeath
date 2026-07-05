@@ -4,9 +4,10 @@ Thanks to [ThePotatoArchivist](https://github.com/ThePotatoArchivist/) for helpi
 
 [discord thread](https://discord.com/channels/507304429255393322/1518333648389279927)
 
-
 This mod added the return by death ability from Re:Zero
 
+Upon demand, I have added a link to the demo
+<div style="left: 0; width: 100%; height: 0; position: relative; padding-bottom: 56.25%;"><iframe src="https://www.youtube.com/embed/V9iZdWIoKa8?rel=0" style="top: 0; left: 0; width: 100%; height: 100%; position: absolute; border: 0;" allowfullscreen scrolling="no" allow="accelerometer *; clipboard-write *; encrypted-media *; gyroscope *; picture-in-picture *; web-share *;" referrerpolicy="strict-origin"></iframe></div>
 #### There are multiple ways to save checkpoints:
     By sleeping on a bed 
     By completing an advancement 
