@@ -19,6 +19,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.stats.Stat;
 import net.minecraft.stats.StatFormatter;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.storage.LevelResource;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
@@ -136,7 +137,6 @@ public class  ReturnByDeath implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-
 		// This code runs as soon as Minecraft is in a mod-load-ready state.
 		// However, some things (like resources) may still be uninitialized.
 		// Proceed with mild caution.
@@ -147,6 +147,8 @@ public class  ReturnByDeath implements ModInitializer {
 
 //      Server Start Event:
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+			Minecraft.getInstance().getSingleplayerServer().getGameRules().set(GameRules.IMMEDIATE_RESPAWN,true,Minecraft.getInstance().getSingleplayerServer());
+
 			var client = Minecraft.getInstance();
 			if (!client.hasSingleplayerServer()) return;
 			if (Files.exists(server.getWorldPath(LevelResource.ROOT).resolve(SAVE_DIR).resolve("level.dat"))) return;

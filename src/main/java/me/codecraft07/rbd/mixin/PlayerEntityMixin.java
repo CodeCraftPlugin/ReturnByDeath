@@ -53,9 +53,14 @@ public abstract class PlayerEntityMixin extends Player implements PacketContextP
 		int playtime = this.getStats().getValue(ReturnByDeath.playTimeStat);
 
 		if ((playtime/20)>=timer){
+			if(!this.isAlive()){
+				System.out.println("Player "+this.getName()+" is dead");
+				return;
+			};
 			ReturnByDeath.save(this.server);
 			this.resetStat(ReturnByDeath.playTimeStat);
 			ReturnByDeath.LOGGER.info("made a save");
+
 		}
 
 	}
