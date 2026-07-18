@@ -26,6 +26,8 @@ There are sound effects for each return.
 
 
 ## Setup
+Currently, the supported version of minecraft is 26.2 and make sure that your loader version for fabric is 19.3
+Also add fabric api to your mods folder since this mod depends on it( Its is a good practice to add fabric-api since all fabric mod use it)
 
 For setup instructions, please see the [Fabric Documentation page](https://docs.fabricmc.net/develop/getting-started/creating-a-project#setting-up) related to the IDE that you are using.
 
