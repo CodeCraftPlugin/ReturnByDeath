@@ -1,4 +1,8 @@
 # Return By Death
+
+**Version : 26.2**<br>
+**Fabric Loader Version: 19.3**
+
 This mod was created by the request of  DogeTOM on fabric project discord server <br>
 Thanks to [ThePotatoArchivist](https://github.com/ThePotatoArchivist/) for helping in creation of this mod through [save state](https://github.com/ThePotatoArchivist/SaveState) mod
 
@@ -6,7 +10,7 @@ Thanks to [ThePotatoArchivist](https://github.com/ThePotatoArchivist/) for helpi
 
 This mod added the return by death ability from Re:Zero
 
-Upon demand, I have added a link to the demo
+Upon demand, I have added a link to the demo, click on the image below for the demo video ( its a yt video)
 [![Demo](Demo.png)](https://youtu.be/V9iZdWIoKa8)
 #### There are multiple ways to save checkpoints:
     By sleeping on a bed 
